@@ -1,0 +1,129 @@
+<?php
+// $Id$
+/**
+ * @file software_license.install
+ * Contains install and update functions for software_license.
+ */
+
+function software_license_install() {
+  drupal_set_message('Installing Software License.');
+  drupal_install_schema('software_license');
+}
+
+function software_license_uninstall() {
+  drupal_set_message('Uninstalling Software License.');
+  drupal_uninstall_schema('software_license');
+  //variable_del('software_license_last_cron');
+}
+
+/**
+ * software_license initial schema.
+ */
+function software_license_schema() {
+  $schema['software_license'] = array(
+    'description' => t('Stores software license keys and serial numbers for users.'),
+    'fields' => array(
+      'serial_id' => array(
+        'type' => 'int',
+        'disp-width' => '11',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => t('The primary key and serial number for this license.'),
+      ),
+      'license_key' => array(
+        'type' => 'varchar',
+        'length' => '16',
+        'description' => t('The randomly generated license key for this license.'),
+      ),
+      'repo_pass' => array(
+        'type' => 'varchar',
+        'length' => '16',
+        'description' => t('The randomly generated password for the software repository.'),
+      ),
+      'uid' => array(
+        'description' => t('The UID of the owner of the license.'),
+        'unsigned' => TRUE,
+        'type' => 'int',
+        'disp-width' => '11',
+      ),
+      'reseller_id' => array(
+        'description' => t('The UID of the reseller responsible for the license.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'disp-width' => '11',
+      ),
+      'start_date' => array(
+        'mysql_type' => 'datetime',
+        'pgsql_type' => 'timestamp',
+        'type' => 'varchar',
+        'length' => '20',
+        'description' => t('The starting valid date of this license.'),
+      ),
+      'end_date' => array(
+        'mysql_type' => 'datetime',
+        'pgsql_type' => 'timestamp',
+        'type' => 'varchar',
+        'length' => '20',
+        'description' => t('The ending valid date of this license.'),
+      ),
+      'product_size' => array(
+        'type' => 'int',
+        'size' => 'medium',
+        'description' => t('The maximum number of domains permitted for Virtualmin licenses or number of virtual instances permitted for Cloudmin licenses.'),
+      ),
+      'server_max' => array(
+        'type' => 'int',
+        'size' => 'medium',
+        'description' => t('The maximum number of servers on which this Virtualmin or Cloudmin license can be installed.'),
+      ),
+      'history' => array(
+        'type' => 'text',
+        'size' => 'medium',
+        'description' => t('Administrative commentary and description of changes to the license, such as ownership transfers.'),
+      ),
+      'comments' => array(
+        'type' => 'text',
+        'size' => 'medium',
+        'description' => t('Comments from the user about their own licenses, allowing such things as noting what customer is using the license or the location or name of a server.'),
+      ),
+      'type' => array(
+        'type' => 'varchar',
+        'length' => '8',
+        'description' => t('The type of server this Virtualmin license is permitted to run on or this Cloudmin license is permitted to manage.  phys, ec2, zones, xen, vserver, or empty for Cloudmin. VPS or empty for Virtualmin'),
+      ),
+      'can_serials' => array(
+        'type' => 'int',
+        'size' => 'small',
+        'description' => t('Can this Cloudmin instance access Virtualmin licenses owned by the user?'),
+      ),
+      'product_name' => array(
+        'type' => 'varchar',
+        'length' => '8',
+        'description' => t('Product indicator.  vm for Virtualmin and cm for Cloudmin.'),
+      ),
+      'order_id' => array(
+        'type' => 'int',
+        'disp-width' => '10',
+        'unsigned' => TRUE,
+        'description' => t('Order ID of the Commerce order that generated this license.'),
+      ),
+      'order_product_id' => array(
+        'type' => 'int',
+        'disp-width' => '10',
+        'unsigned' => TRUE,
+        'description' => t('Order product ID of the Commerce order that generated this license.'),
+      ),
+      'trial' => array(
+        'type' => 'int',
+        'size' => 'small',
+        'disp-width' => '4',
+        'unsigned' => TRUE,
+        'description' => t('Trial license.'),
+      )
+    ),
+    'primary key' => array('serial_id'),
+  );
+
+  return $schema;
+}
+

@@ -1,0 +1,7 @@
+name = Software License
+description = Manage software licenses for Virtualmin and Cloudmin
+core = 7.x
+dependencies[] = entity
+
+files[] = views/software_licenses_by_user.view.php
+files[] = views/cloudmin_licenses.view.php

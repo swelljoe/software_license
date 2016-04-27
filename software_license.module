@@ -1,0 +1,262 @@
+<?php
+
+function software_license_entity_info(){
+  $entities['software_license'] = array(
+    'label' => t('Software License'),
+    'plural label' => t('Software Licenses'),
+    'entity class' => 'SoftwareLicense',
+    'controller class' => 'SoftwareLicenseAPIController',
+    'views controller class' => 'EntityDefaultViewsController',
+    'module' => 'software_license',
+    'admin ui' => array(
+      'path' => 'admin/software_licenses',
+    ),
+    'access callback' => 'software_license_access',
+    'access arguments' => array('view', 1),
+    'base table' => 'software_license',
+    'fieldable' => FALSE,
+    'entity keys' => array(
+      'id' => 'serial_id',
+      'label' => 'serial_id',
+    )
+  );
+  
+  return $entities;
+}
+
+// XXX How can $software_license_owner get populated?
+function software_license_access($op, $software_license_owner = NULL, $account = NULL) {
+  global $user;
+
+  if (!isset($account)) {
+    $account = $user;
+  }
+
+  // Punt, because this isn't working right.
+  if (user_access('administer software_license entities', $account)) {
+    return TRUE;
+  }
+
+  switch ($op) {
+    case 'view':
+      return user_access('administer software_license entities', $account)
+          || (user_access('view own software_license entities', $account) && ($software_license_owner == $account->uid));
+    case 'edit':
+      return user_access('administer software_license entities', $account);
+    case 'create':
+      return user_access('administer software_license entities', $account);
+  }
+}
+
+function software_license_permission() {
+  $permissions = array(
+    'administer software_license entities' => array(
+      'title' => t('Administer Software Licenses'),
+      'description' => t('Allows users to administer all software licenses.'),
+      'restrict access' => TRUE,
+    ),
+    'create software_license entities' => array(
+      'title' => t('Create Software Licenses'),
+      'description' => t('Allows creation of software licenses.'),
+      'restrict access' => TRUE,
+    ),
+    'view software_license entities' => array(
+      'title' => t('View Software Licenses'),
+      'description' => t('Allows users to view tasks'),
+      'restrict access' => TRUE,
+    ),
+    'edit any software_license entities' => array(
+      'title' => t('Edit software licenses'),
+      'description' => t('Allows users to edit Software Licenses.'),
+      'restrict access' => TRUE,
+    ),
+    'view own software_license entities' => array(
+      'title' => t('View own software licenses.'),
+      'description' => t('Allows users to view their own software licenses.'),
+    ),
+  );
+
+  return $permissions;
+}
+
+function software_license_ui($software_license){
+  return array(
+    'path' => 'serial/' . $software_license->serial_id,
+  );
+}
+
+function software_license_load($serial_id = NULL) {
+  $sids = (isset ($pid) ? array($pid) : array());
+  $serial = software_license_load_multiple($sids);
+  return $serial;
+}
+
+function software_license_load_multiple($sids) {
+  return entity_load($sids);
+}
+
+function software_license_entity_property_info_alter() {
+  $info = array();
+
+  $properties = &$info['software_license']['properties'];
+
+  $properties['serial_id'] = array(
+    'label' => t("Serial Number"),
+    'schema field' => 'serial_id',
+    'description' => t("Serial Number of the license"),
+  );
+  $properties['uid'] = array(
+    'label' => t("Owner"),
+    'type' => 'user',
+    'schema field' => 'uid',
+  );
+}
+
+function software_license_views_data() {
+  // Expose the UID as a relationship to users.
+  $data['software_license']['user'] = array(
+    'title' => t('User'),
+    'help' => t('The owner of the software license.'),
+    'field' => array(
+      'handler' => 'views_handler_field_user',
+      'click sortable' => TRUE,
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_user_name',
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'argument' => array(
+      'handler' => 'views_argument_user_uid',
+    ),
+    'relationship' => array(
+      'handler' => 'views_handler_relationship',
+      'base' => 'users',
+      'field' => 'uid',
+      'label' => t('Owner'),
+    ),
+  );
+
+  $data['software_license']['current_uid'] = array(
+    'title' => t('Current user'),
+    'real field' => 'uid',
+    'filter' => array(
+      'handler' => 'views_handler_filter_user_current',
+    ),
+  );
+
+  return $data;
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function software_license_views_api() {
+  return array(
+    'version' => 3,
+  );
+}
+
+class SoftwareLicense extends Entity {
+  protected function defaultLabel() {
+    return $this->title;
+  }
+
+  protected function defaultUri() {
+    return array('path' => 'serial/' . $this->identifer());
+  }
+}
+
+class SoftwareLicenseAPIController extends EntityAPIController {
+  public function __construct($entityType) {
+    parent::__construct($entityType);
+  }
+
+  public function create(array $values = array()) {
+    global $user;
+    dpm($values);
+    $serial_id = db_next_id(db_query('SELECT MAX(serial_id) FROM {software_license}')->fetchField());
+    $license_key = user_password($length = 10);
+    $repo_pass = user_password($length = 10);
+    // Setup the license information
+    $start_date = date("Y-m-d");
+    $end_date = date("Y-m-d");
+    $reseller_id = '1';
+    $product_size = '10';
+    $values += array(
+      'serial_id' => $serial_id,
+      'license_key' => $license_key,
+      'repo_pass' => $repo_pass,
+      'start_date' => $start_date,
+      'end_date' => $end_date,
+      'uid' => $user->uid,
+      'reseller_id' => $reseller_id,
+      'product_size' => $product_size,
+      'server_max' => '1',
+      'history' => '',
+      'comments' => '',
+      'type' => '',
+      'can_serials' => '',
+      'product_name' => '',
+      'order_id' => '',
+      'order_product_id' => '',
+      'trial' => '',
+    );
+
+    $software_license = parent::create($values);
+    return $software_license;
+  }
+}
+
+function software_license_form($form, &$form_state, $software_license, $op = 'create') {
+  $form['uid'] = array(
+    '#title' => t('Owner UID'),
+    '#type' => 'textfield',
+    '#required' => TRUE,
+  );
+
+  $form['size'] = array(
+    '#title' => t('Size (# of domins or virtual machines)'),
+    '#type' => 'select',
+    '#default' => '10',
+    '#options' => array(
+      '10' => '10',
+      '50' => '50',
+      '100' => '100',
+      '250' => '250',
+      '0' => '0',
+    ),
+  );
+
+  $form['name'] = array(
+    '#title' => t('Product name'),
+    '#type' => 'select',
+    '#options' => array(
+      'vm' => t('Virtualmin'),
+      'cm' => t('Cloudmin'),
+    ),
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Create License',
+    '#default' => 'vm',
+  );
+
+  return $form;
+}
+
+function software_license_form_submit($form, &$form_state) {
+  $uid = $form_state['values']['uid'];
+  $size = $form_state['values']['size'];
+  $name = $form_state['values']['name'];
+  $sl_data = array(
+    'uid' => $uid,
+    'product_size' => $size,
+    'product_name' => $name,
+  );
+  $software_license = entity_create('software_license', $sl_data);
+  entity_save('software_license', $software_license);
+  $form_state['redirect'] = 'admin/software_licenses';
+}
